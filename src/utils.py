@@ -113,6 +113,9 @@ def process_dataset(dataset):
 
 
 def process_control():
+    # ADDED BY DIP # 
+    cfg['control']['local_epoch'] = '5-5' # 5-5
+    #################
     if cfg['control']['num_supervised'] == 'fs':
         cfg['control']['num_supervised'] = '-1'
     cfg['num_supervised'] = int(cfg['control']['num_supervised'])
@@ -132,6 +135,9 @@ def process_control():
     if 'num_clients' in cfg['control']:
         cfg['num_clients'] = int(cfg['control']['num_clients'])
         cfg['active_rate'] = float(cfg['control']['active_rate'])
+        cfg['num_clients'] = 100 # 100
+        cfg['active_rate'] = 0.2 # 0.2
+
         cfg['data_split_mode'] = cfg['control']['data_split_mode']
         cfg['local_epoch'] = cfg['control']['local_epoch'].split('-')
         cfg['gm'] = float(cfg['control']['gm'])
@@ -160,14 +166,14 @@ def process_control():
         cfg['global'] = {}
         cfg['global']['batch_size'] = {'train': 250, 'test': 250}
         cfg['global']['shuffle'] = {'train': True, 'test': False}
-        cfg['global']['num_epochs'] = 800
+        cfg['global']['num_epochs'] = 70
         cfg['global']['optimizer_name'] = 'SGD'
         cfg['global']['lr'] = 1
         cfg['global']['momentum'] = cfg['gm']
         cfg['global']['weight_decay'] = 0
         cfg['global']['nesterov'] = False
         cfg['global']['scheduler_name'] = 'CosineAnnealingLR'
-        cfg['alpha'] = 0.75
+        cfg['alpha'] = 0.75 
     else:
         model_name = cfg['model_name']
         cfg[model_name]['shuffle'] = {'train': True, 'test': False}
@@ -264,8 +270,15 @@ def make_scheduler(optimizer, tag):
 
 
 def resume(model_tag, load_tag='checkpoint', verbose=True):
-    if os.path.exists('./output/model/{}_{}.pt'.format(model_tag, load_tag)):
-        result = load('./output/model/{}_{}.pt'.format(model_tag, load_tag))
+    
+    if os.path.exists('./output/model/{}-{}_{}.pt'.format(model_tag, cfg['optimization_mode'],
+                          load_tag)):
+        print('Resuming training')
+        result = load('./output/model/{}-{}_{}.pt'.format(model_tag, cfg['optimization_mode'],
+                              load_tag))
+
+        
+   
     else:
         print('Not exists model tag: {}, start from scratch'.format(model_tag))
         from datetime import datetime

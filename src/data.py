@@ -90,6 +90,7 @@ def make_data_loader(dataset, tag, batch_size=None, shuffle=None, sampler=None, 
     data_loader = {}
     for k in dataset:
         _batch_size = cfg[tag]['batch_size'][k] if batch_size is None else batch_size[k]
+        #print('Batch: ', _batch_size)
         _shuffle = cfg[tag]['shuffle'][k] if shuffle is None else shuffle[k]
         if sampler is not None:
             data_loader[k] = DataLoader(dataset=dataset[k], batch_size=_batch_size, sampler=sampler[k],
@@ -113,8 +114,9 @@ def split_dataset(dataset, num_users, data_split_mode):
         data_split['train'] = iid(dataset['train'], num_users)
         data_split['test'] = iid(dataset['test'], num_users)
     elif 'non-iid' in cfg['data_split_mode']:
-        data_split['train'] = non_iid(dataset['train'], num_users)
-        data_split['test'] = non_iid(dataset['test'], num_users)
+        # set seed so that test and train are split with same sampling distribution
+        data_split['train'] = non_iid(dataset['train'], num_users, seed = 1234)
+        data_split['test'] = non_iid(dataset['test'], num_users, seed = 1234)
     else:
         raise ValueError('Not valid data split mode')
     return data_split
@@ -130,7 +132,7 @@ def iid(dataset, num_users):
     return data_split
 
 
-def non_iid(dataset, num_users):
+def non_iid(dataset, num_users, seed):
     target = torch.tensor(dataset.target)
     data_split_mode_list = cfg['data_split_mode'].split('-')
     data_split_mode_tag = data_split_mode_list[-2]
@@ -157,6 +159,7 @@ def non_iid(dataset, num_users):
                 data_split[i].extend(target_idx_split[target_i].pop(idx))
     elif data_split_mode_tag == 'd':
         beta = float(data_split_mode_list[-1])
+        torch.manual_seed(seed)
         dir = torch.distributions.dirichlet.Dirichlet(torch.tensor(beta).repeat(num_users))
         min_size = 0
         required_min_size = 10
@@ -201,6 +204,7 @@ def separate_dataset_su(server_dataset, client_dataset=None, supervised_idx=None
                     idx = idx[torch.randperm(len(idx))[:num_supervised_per_class]].tolist()
                     supervised_idx.extend(idx)
         else:
+            # Target size is 10
             if cfg['num_supervised'] == -1:
                 supervised_idx = list(range(len(server_dataset)))
             else:
